@@ -161,4 +161,4 @@ D√πng [GitHub Issues](https://github.com/finntrannn/alden-bot/issues) cho bug v√
 
 ## License
 
-ISC. Xem [LICENSE](LICENSE).
+MIT. Xem [LICENSE](LICENSE).

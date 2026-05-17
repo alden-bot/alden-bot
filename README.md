@@ -161,4 +161,4 @@ Use [GitHub Issues](https://github.com/finntrannn/alden-bot/issues) for bugs and
 
 ## License
 
-ISC. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
