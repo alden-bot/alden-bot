@@ -1,4 +1,5 @@
-import { MessageEvent } from '@/core/event/MessageEvent';
+import { Event } from '@/core/event/Event';
+import type { EventConstructor } from '@/core/event/EventManager';
 import type { AldenBot } from '@/core/AldenBot';
 
 export class SessionError extends Error {
@@ -8,103 +9,99 @@ export class SessionError extends Error {
 	}
 }
 
-export type SessionValidator = (event: MessageEvent) => Promise<boolean> | boolean;
+export type SessionValidator<T extends Event> = (event: T) => Promise<boolean> | boolean;
 
 export class SessionManager {
 	private readonly sessions = new Map<
 		string,
 		{
-			resolve: (event: MessageEvent) => void;
 			reject: (err: Error) => void;
 			timeout: NodeJS.Timeout;
-			validator?: SessionValidator;
 		}
 	>();
 
-	public constructor(private readonly bot: AldenBot) {
-		this.bot.eventManager.on(
-			MessageEvent,
-			async (event) => {
+	public constructor(private readonly bot: AldenBot) {}
+
+	public waitFor<
+		T extends Event & {
+			message: { threadId: string; data: { uidFrom: string }; type: number };
+		},
+	>(
+		eventClass: EventConstructor<T>,
+		threadId: string,
+		userId: string,
+		timeoutMs: number,
+		validator?: SessionValidator<T>,
+		onCancel?: (reason: SessionError) => void,
+	): Promise<T> {
+		const key = `${threadId}_${userId}`;
+
+		this.cancelSession(threadId, userId);
+
+		return new Promise<T>((resolve, reject) => {
+			let isSettled = false;
+
+			const cleanup = () => {
+				if (isSettled) return;
+				isSettled = true;
+				clearTimeout(timeout);
+				unregister();
+				this.sessions.delete(key);
+			};
+
+			const timeout = setTimeout(() => {
+				cleanup();
+				const err = new SessionError('TIMEOUT');
+				if (onCancel) onCancel(err);
+				reject(err);
+			}, timeoutMs);
+
+			const handler = async (event: T) => {
 				if (event.isCancelled) return;
-
-				const rawContent = event.message.data.content;
-				const prefix = this.bot.config.PREFIX;
-				const isCancelCmd =
-					typeof rawContent === 'string' &&
-					[`${prefix}cancel`, `${prefix}c`, `${prefix}stop`].includes(
-						rawContent.trim().toLowerCase(),
-					);
-
-				if (isCancelCmd) return;
-
-				const key = `${event.message.threadId}_${event.message.data.uidFrom}`;
-				const session = this.sessions.get(key);
-				if (!session) return;
+				if (event.message.threadId !== threadId || event.message.data.uidFrom !== userId)
+					return;
 
 				let isValid = true;
-				if (session.validator) {
+				if (validator) {
 					try {
-						isValid = await session.validator(event);
+						isValid = await validator(event);
 					} catch (error) {
-						session.reject(error instanceof Error ? error : new Error(String(error)));
-						this.sessions.delete(key);
+						cleanup();
+						reject(error instanceof Error ? error : new Error(String(error)));
 						return;
 					}
 				}
 
 				if (isValid) {
 					this.bot.logger.debug(
-						`Message from ${event.message.data.uidFrom} routed to active session.`,
+						`Event ${eventClass.name} from ${event.message.data.uidFrom} routed to active session.`,
 					);
-					clearTimeout(session.timeout);
-					this.sessions.delete(key);
-					session.resolve(event);
+					cleanup();
+					resolve(event);
 				}
-			},
-			{ priority: 10 },
-		);
-	}
+			};
 
-	public waitForMessage(
-		threadId: string,
-		userId: string,
-		timeoutMs: number,
-		validator?: SessionValidator,
-		onCancel?: (reason: SessionError) => void,
-	): Promise<MessageEvent> {
-		const key = `${threadId}_${userId}`;
-
-		this.cancelSession(threadId, userId);
-
-		const promise = new Promise<MessageEvent>((resolve, reject) => {
-			const timeout = setTimeout(() => {
-				this.sessions.delete(key);
-				const err = new SessionError('TIMEOUT');
-				if (onCancel) onCancel(err);
-				reject(err);
-			}, timeoutMs);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const unregister = this.bot.eventManager.on(eventClass, handler as any, {
+				priority: 10,
+			});
 
 			this.sessions.set(key, {
-				resolve,
 				reject: (err: Error) => {
+					cleanup();
 					if (onCancel && err instanceof SessionError) onCancel(err);
 					reject(err);
 				},
 				timeout,
-				validator,
 			});
 		});
-
-		return promise;
 	}
 
 	public cancelSession(threadId: string, userId: string): void {
 		const key = `${threadId}_${userId}`;
 		const session = this.sessions.get(key);
 		if (session) {
-			clearTimeout(session.timeout);
 			session.reject(new SessionError('OVERRIDDEN'));
-			this.sessions.delete(key);
 		}
 	}
 
@@ -112,9 +109,7 @@ export class SessionManager {
 		const key = `${threadId}_${userId}`;
 		const session = this.sessions.get(key);
 		if (session) {
-			clearTimeout(session.timeout);
 			session.reject(new SessionError('CANCELLED_BY_USER'));
-			this.sessions.delete(key);
 			return true;
 		}
 		return false;

@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { exec } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import { existsAsync, readJsonFileAsync, writeJsonFileAsync } from '@/utils/file';
 import type { Logger } from '@/shared/logger';
 
-const execFileAsync = promisify(execFile);
+const execAsync = promisify(exec);
 const INSTALL_TIMEOUT_MS = 120_000;
 
 interface PluginPackageJson {
@@ -67,7 +67,8 @@ export class PluginInstaller {
 		);
 
 		try {
-			const { stderr } = await execFileAsync(installCommand.command, installCommand.args, {
+			const fullCommand = `${installCommand.command} ${installCommand.args.join(' ')}`;
+			const { stderr } = await execAsync(fullCommand, {
 				cwd: pluginPath,
 				timeout: INSTALL_TIMEOUT_MS,
 			});
@@ -107,7 +108,7 @@ export class PluginInstaller {
 		if (await existsAsync(path.join(pluginPath, 'pnpm-lock.yaml'))) {
 			return {
 				command: 'pnpm',
-				args: ['install', '--prod', '--frozen-lockfile'],
+				args: ['install', '--prod', '--frozen-lockfile', '--ignore-workspace'],
 				label: 'pnpm frozen lockfile',
 			};
 		}

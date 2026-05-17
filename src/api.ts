@@ -7,6 +7,7 @@ export type {
 	EventHandler,
 	EventListenerOptions,
 } from '@/core/event/EventManager';
+export { readJsonFileAsync, writeJsonFileAsync } from '@/utils/file';
 export { PluginBase } from '@/core/plugin/PluginBase';
 export type { PluginDescription, PluginManifest } from '@/core/plugin/PluginManifest';
 export { Role } from '@/core/permission/PermissionManager';

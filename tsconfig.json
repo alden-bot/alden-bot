@@ -13,6 +13,7 @@
 		"moduleResolution": "Bundler",
 		"module": "ESNext",
 		"rootDir": ".",
+		"types": ["node"],
 		"paths": {
 			"@/*": ["./src/*"]
 		},
