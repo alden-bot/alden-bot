@@ -10,10 +10,27 @@ export class SessionError extends Error {
 }
 
 export type SessionEvent = Event & {
-	message: { threadId: string; data: { uidFrom: string }; type: number };
+	message: { threadId: string; data: { uidFrom: string; content?: unknown }; type: number };
 };
 
 export type SessionValidator<T extends SessionEvent> = (event: T) => Promise<boolean> | boolean;
+
+function isSessionEvent(event: Event): event is SessionEvent {
+	const message = (event as { message?: unknown }).message;
+	if (!message || typeof message !== 'object') return false;
+
+	const msg = message as {
+		threadId?: unknown;
+		type?: unknown;
+		data?: { uidFrom?: unknown };
+	};
+
+	return (
+		typeof msg.threadId === 'string' &&
+		typeof msg.type === 'number' &&
+		typeof msg.data?.uidFrom === 'string'
+	);
+}
 
 export class SessionManager {
 	private readonly sessions = new Map<
@@ -45,21 +62,76 @@ export class SessionManager {
 		validator?: SessionValidator<T>,
 		onCancel?: (reason: SessionError) => void,
 	): Promise<T> {
+		return this.waitForSessionEvent(
+			threadId,
+			userId,
+			timeoutMs,
+			validator,
+			onCancel,
+			(handler) => {
+				const unregisterListeners: Array<() => void> = [];
+				for (const eventClass of eventClasses) {
+					unregisterListeners.push(
+						this.bot.eventManager.on(eventClass, handler, {
+							priority: 10,
+						}),
+					);
+				}
+
+				return () => {
+					for (const unregister of unregisterListeners) {
+						unregister();
+					}
+				};
+			},
+		);
+	}
+
+	public waitForAll<T extends SessionEvent = SessionEvent>(
+		threadId: string,
+		userId: string,
+		timeoutMs: number,
+		validator?: SessionValidator<T>,
+		onCancel?: (reason: SessionError) => void,
+	): Promise<T> {
+		return this.waitForSessionEvent(
+			threadId,
+			userId,
+			timeoutMs,
+			validator,
+			onCancel,
+			(handler) =>
+				this.bot.eventManager.onAll(
+					(event) => {
+						if (isSessionEvent(event)) {
+							return handler(event as T);
+						}
+					},
+					{ priority: 10 },
+				),
+		);
+	}
+
+	private waitForSessionEvent<T extends SessionEvent>(
+		threadId: string,
+		userId: string,
+		timeoutMs: number,
+		validator: SessionValidator<T> | undefined,
+		onCancel: ((reason: SessionError) => void) | undefined,
+		registerListener: (handler: (event: T) => Promise<void>) => () => void,
+	): Promise<T> {
 		const key = `${threadId}_${userId}`;
 
 		this.cancelSession(threadId, userId);
 
 		return new Promise<T>((resolve, reject) => {
 			let isSettled = false;
-			const unregisterListeners: Array<() => void> = [];
 
 			const cleanup = () => {
 				if (isSettled) return;
 				isSettled = true;
 				clearTimeout(timeout);
-				for (const unregister of unregisterListeners) {
-					unregister();
-				}
+				unregisterListener();
 				this.sessions.delete(key);
 			};
 
@@ -95,13 +167,7 @@ export class SessionManager {
 				}
 			};
 
-			for (const eventClass of eventClasses) {
-				unregisterListeners.push(
-					this.bot.eventManager.on(eventClass, handler, {
-						priority: 10,
-					}),
-				);
-			}
+			const unregisterListener = registerListener(handler);
 
 			this.sessions.set(key, {
 				reject: (err: Error) => {

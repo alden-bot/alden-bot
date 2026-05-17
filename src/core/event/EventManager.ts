@@ -18,20 +18,14 @@ export interface EventListenerOptions {
 
 export class EventManager {
 	private readonly handlers = new Map<string, HandlerEntry[]>();
+	private readonly allHandlers: HandlerEntry[] = [];
 
 	public on<T extends Event>(
 		eventClass: EventConstructor<T>,
 		handler: EventHandler<T>,
 		options: EventListenerOptions | number = {},
 	): () => void {
-		const opts: EventListenerOptions =
-			typeof options === 'number' ? { priority: options } : options;
-
-		const entry: HandlerEntry = {
-			handler: handler as EventHandler<Event>,
-			priority: opts.priority ?? 0,
-			ignoreCancelled: opts.ignoreCancelled ?? false,
-		};
+		const entry = this.createEntry(handler, options);
 
 		const key = eventClass.name;
 		const existing = this.handlers.get(key) ?? [];
@@ -40,6 +34,31 @@ export class EventManager {
 		this.handlers.set(key, existing);
 
 		return () => this.off(key, entry);
+	}
+
+	public onAll<T extends Event>(
+		handler: EventHandler<T>,
+		options: EventListenerOptions | number = {},
+	): () => void {
+		const entry = this.createEntry(handler, options);
+		this.allHandlers.push(entry);
+		this.allHandlers.sort((a, b) => a.priority - b.priority);
+
+		return () => this.offAll(entry);
+	}
+
+	private createEntry<T extends Event>(
+		handler: EventHandler<T>,
+		options: EventListenerOptions | number,
+	): HandlerEntry {
+		const opts: EventListenerOptions =
+			typeof options === 'number' ? { priority: options } : options;
+
+		return {
+			handler: handler as EventHandler<Event>,
+			priority: opts.priority ?? 0,
+			ignoreCancelled: opts.ignoreCancelled ?? false,
+		};
 	}
 
 	private off(key: string, entry: HandlerEntry): void {
@@ -51,9 +70,14 @@ export class EventManager {
 		if (entries.length === 0) this.handlers.delete(key);
 	}
 
+	private offAll(entry: HandlerEntry): void {
+		const idx = this.allHandlers.indexOf(entry);
+		if (idx !== -1) this.allHandlers.splice(idx, 1);
+	}
+
 	public async call<T extends Event>(event: T): Promise<T> {
 		const entries = this.handlers.get(event.constructor.name) ?? [];
-		const snapshot = [...entries];
+		const snapshot = [...this.allHandlers, ...entries].sort((a, b) => a.priority - b.priority);
 		for (let i = 0; i < snapshot.length; i++) {
 			const { handler, priority, ignoreCancelled } = snapshot[i]!;
 			if (event.isCancelled && !ignoreCancelled) continue;

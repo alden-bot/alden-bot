@@ -2,12 +2,14 @@ import type { Message } from 'zca-js';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AldenBot } from '@/core/AldenBot';
+import { Event } from '@/core/event/Event';
 import { EventManager } from '@/core/event/EventManager';
 import { LiveLocationEvent } from '@/core/event/LiveLocationEvent';
 import { LocationEvent } from '@/core/event/LocationEvent';
+import { MessageEvent } from '@/core/event/MessageEvent';
 import { SessionManager } from '@/core/session/SessionManager';
 
-function createMessage(): Message {
+function createMessage(overrides: Partial<Message> = {}): Message {
 	return {
 		threadId: 'thread-1',
 		type: 1,
@@ -16,8 +18,11 @@ function createMessage(): Message {
 			dName: 'User',
 			content: '',
 		},
+		...overrides,
 	} as unknown as Message;
 }
+
+class RawEvent extends Event {}
 
 function createSessionManager(): {
 	eventManager: EventManager;
@@ -93,5 +98,37 @@ describe('SessionManager', () => {
 		await eventManager.call(location);
 
 		await expect(pending).resolves.toBe(location);
+	});
+
+	it('routes all message-backed events to waitForAll sessions', async () => {
+		const { eventManager, sessionManager } = createSessionManager();
+		const message = createMessage();
+		const seen: string[] = [];
+
+		const pending = sessionManager.waitForAll(
+			message.threadId,
+			message.data.uidFrom,
+			1000,
+			(event) => {
+				seen.push(event.constructor.name);
+				return event instanceof LocationEvent;
+			},
+		);
+
+		await eventManager.call(new RawEvent());
+		await eventManager.call(new MessageEvent(createMessage({ threadId: 'thread-2' })));
+		await eventManager.call(new MessageEvent(message));
+
+		const location = new LocationEvent(message, {
+			latitude: 10.1,
+			longitude: 106.2,
+			placeId: 'place-1',
+			title: 'Home',
+			description: 'District 1',
+		});
+		await eventManager.call(location);
+
+		await expect(pending).resolves.toBe(location);
+		expect(seen).toEqual(['MessageEvent', 'LocationEvent']);
 	});
 });
