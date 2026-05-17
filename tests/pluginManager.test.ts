@@ -23,39 +23,54 @@ function createLoggerStub(): Logger {
 }
 
 function createBotStub() {
+	const logger = createLoggerStub();
 	const permissionManager = {
 		registerPermission: vi.fn(),
 		unregisterPermission: vi.fn(),
 	};
 
 	const bot = {
-		logger: createLoggerStub(),
+		logger,
 		config: {
 			version: '1.0.0',
 		},
 		permissionManager,
+		schedulerManager: {
+			clearTasks: vi.fn(),
+			schedule: vi.fn(),
+		},
+		commandManager: {
+			register: vi.fn(() => true),
+			unregister: vi.fn(),
+		},
+		eventManager: {
+			on: vi.fn(() => vi.fn()),
+		},
+		registerService: vi.fn(),
+		unregisterService: vi.fn(),
+		getService: vi.fn(),
 	} as unknown as AldenBot;
 
-	return { bot, permissionManager };
+	return { bot, logger, permissionManager };
 }
 
 async function createPluginDir(
 	name: string,
 	mainSource: string,
-	options: { locales?: boolean } = {},
+	options: { locales?: boolean; root?: string; manifestName?: string } = {},
 ): Promise<string> {
-	tempRoot = await fsp.mkdtemp(path.join(os.tmpdir(), 'alden-plugin-'));
+	tempRoot = options.root ?? (await fsp.mkdtemp(path.join(os.tmpdir(), 'alden-plugin-')));
 	const pluginPath = path.join(tempRoot, name);
 	await fsp.mkdir(pluginPath, { recursive: true });
 	await fsp.writeFile(
 		path.join(pluginPath, 'plugin.json'),
 		JSON.stringify(
 			{
-				name,
+				name: options.manifestName ?? name,
 				version: '1.0.0',
 				description: 'Plugin under test',
 				author: 'Alden',
-				main: 'main.js',
+				main: 'main.ts',
 				permissions: {
 					'alden.test': 3,
 				},
@@ -64,7 +79,7 @@ async function createPluginDir(
 			2,
 		),
 	);
-	await fsp.writeFile(path.join(pluginPath, 'main.js'), mainSource);
+	await fsp.writeFile(path.join(pluginPath, 'main.ts'), mainSource);
 	if (options.locales) {
 		const localesDir = path.join(pluginPath, 'resources', 'locales');
 		await fsp.mkdir(localesDir, { recursive: true });
@@ -90,16 +105,12 @@ describe('PluginManager lifecycle handling', () => {
 		const pluginPath = await createPluginDir(
 			'broken-load',
 			`
-export default class BrokenLoadPlugin {
-	constructor(description, bot, pluginPath) {
-		this.description = description;
-		this.bot = bot;
-		this.pluginPath = pluginPath;
-	}
+import { PluginBase } from '@/api';
+
+export default class BrokenLoadPlugin extends PluginBase {
 	async onLoad() {
 		throw new Error('onLoad failed');
 	}
-	dispose() {}
 }
 `,
 		);
@@ -116,17 +127,13 @@ export default class BrokenLoadPlugin {
 		const pluginPath = await createPluginDir(
 			'broken-disable',
 			`
-export default class BrokenDisablePlugin {
-	constructor(description, bot, pluginPath) {
-		this.description = description;
-		this.bot = bot;
-		this.pluginPath = pluginPath;
-	}
+import { PluginBase } from '@/api';
+
+export default class BrokenDisablePlugin extends PluginBase {
 	async onLoad() {}
 	async onDisable() {
 		throw new Error('onDisable failed');
 	}
-	dispose() {}
 }
 `,
 		);
@@ -144,14 +151,10 @@ export default class BrokenDisablePlugin {
 		const pluginPath = await createPluginDir(
 			'manual-i18n',
 			`
-export default class ManualI18nPlugin {
-	constructor(description, bot, pluginPath) {
-		this.description = description;
-		this.bot = bot;
-		this.pluginPath = pluginPath;
-	}
+import { PluginBase } from '@/api';
+
+export default class ManualI18nPlugin extends PluginBase {
 	async onLoad() {}
-	dispose() {}
 }
 `,
 			{ locales: true },
@@ -161,5 +164,48 @@ export default class ManualI18nPlugin {
 
 		const plugin = manager.getPlugin('manual-i18n') as { i18n?: unknown } | undefined;
 		expect(plugin?.i18n).toBeUndefined();
+	});
+
+	it('skips plugin classes that do not extend PluginBase', async () => {
+		const { bot, logger } = createBotStub();
+		const manager = new PluginManager(bot);
+		const pluginPath = await createPluginDir(
+			'not-plugin',
+			`
+export default class NotPlugin {
+	async onLoad() {}
+	async onEnable() {}
+	async onDisable() {}
+	dispose() {}
+}
+`,
+		);
+
+		await expect(manager.loadPlugin(pluginPath)).resolves.toBe(false);
+		expect(manager.getPlugin('not-plugin')).toBeUndefined();
+		expect(logger.error).toHaveBeenCalledWith(
+			expect.stringContaining('must extend PluginBase'),
+		);
+	});
+
+	it('keeps the first plugin when manifest names collide', async () => {
+		const { bot, logger } = createBotStub();
+		const manager = new PluginManager(bot);
+		const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'alden-plugin-dupes-'));
+		tempRoot = root;
+		const mainSource = `
+import { PluginBase } from '@/api';
+
+export default class DuplicatePlugin extends PluginBase {}
+`;
+
+		await createPluginDir('first', mainSource, { root, manifestName: 'duplicate' });
+		await createPluginDir('second', mainSource, { root, manifestName: 'duplicate' });
+
+		await manager.loadAll(root);
+
+		expect(manager.getPlugins().size).toBe(1);
+		expect(manager.getPlugin('duplicate')).toBeDefined();
+		expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Duplicate plugin name'));
 	});
 });

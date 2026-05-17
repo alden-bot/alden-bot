@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import semver from 'semver';
 
 import type { AldenBot } from '@/core/AldenBot';
-import type { PluginBase } from './PluginBase';
+import { isPluginBaseInstance, type PluginBase } from './PluginBase';
 import { existsAsync } from '@/utils/file';
 import { PluginInstaller } from './PluginInstaller';
 import { type PluginMeta, resolvePluginLoadOrder } from './PluginDependencyResolver';
@@ -75,6 +75,13 @@ export class PluginManager {
 	public async loadPlugin(pluginPath: string): Promise<boolean> {
 		const manifest = await this.readManifest(pluginPath);
 		if (!manifest) return false;
+
+		if (this.plugins.has(manifest.name)) {
+			this.bot.logger.error(
+				`PluginManager: Plugin "${manifest.name}" is already loaded. Skipping duplicate from "${pluginPath}".`,
+			);
+			return false;
+		}
 
 		if (!this.validateApiVersion(manifest)) return false;
 		if (!this.validateDependencies(manifest)) return false;
@@ -227,7 +234,7 @@ export class PluginManager {
 			const module = (await import(importUrl)) as Record<string, unknown>;
 
 			const PluginClass = (module.default ?? module.Main) as
-				| (new (desc: PluginManifest, bot: AldenBot, pluginPath: string) => PluginBase)
+				| (new (desc: PluginManifest, bot: AldenBot, pluginPath: string) => unknown)
 				| undefined;
 
 			if (typeof PluginClass !== 'function') {
@@ -237,7 +244,15 @@ export class PluginManager {
 				return null;
 			}
 
-			return new PluginClass(description, this.bot, pluginRoot);
+			const plugin = new PluginClass(description, this.bot, pluginRoot);
+			if (!isPluginBaseInstance(plugin)) {
+				this.bot.logger.error(
+					`PluginManager: "${description.name}" must extend PluginBase from the public API.`,
+				);
+				return null;
+			}
+
+			return plugin;
 		} catch (error) {
 			this.bot.logger.error(
 				`PluginManager: Failed to load plugin "${description.name}"`,
@@ -263,8 +278,11 @@ export class PluginManager {
 	}
 
 	private async scanPlugins(pluginsDir: string): Promise<PluginMeta[]> {
-		const entries = await fsp.readdir(pluginsDir, { withFileTypes: true });
+		const entries = (await fsp.readdir(pluginsDir, { withFileTypes: true })).sort((a, b) =>
+			a.name.localeCompare(b.name),
+		);
 		const metas: PluginMeta[] = [];
+		const seenPluginNames = new Map<string, string>();
 
 		for (const entry of entries) {
 			if (!entry.isDirectory()) continue;
@@ -272,6 +290,15 @@ export class PluginManager {
 			const pluginPath = path.join(pluginsDir, entry.name);
 			const manifest = await this.readManifest(pluginPath);
 			if (manifest) {
+				const existingPath = seenPluginNames.get(manifest.name);
+				if (existingPath) {
+					this.bot.logger.error(
+						`PluginManager: Duplicate plugin name "${manifest.name}" in "${pluginPath}". Keeping "${existingPath}".`,
+					);
+					continue;
+				}
+
+				seenPluginNames.set(manifest.name, pluginPath);
 				metas.push({ name: manifest.name, description: manifest, pluginPath });
 			}
 		}

@@ -6,8 +6,8 @@ import { PATH } from '@/config/constants';
 import { ensureDirAsync, readJsonFileAsync } from '@/utils/file';
 import logger, { Logger } from '@/shared/logger';
 
-validateEnv();
 console.clear();
+validateEnv();
 
 Logger.enableFileOutput(PATH.LOGS_DIR);
 

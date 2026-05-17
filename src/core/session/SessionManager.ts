@@ -9,7 +9,11 @@ export class SessionError extends Error {
 	}
 }
 
-export type SessionValidator<T extends Event> = (event: T) => Promise<boolean> | boolean;
+export type SessionEvent = Event & {
+	message: { threadId: string; data: { uidFrom: string }; type: number };
+};
+
+export type SessionValidator<T extends SessionEvent> = (event: T) => Promise<boolean> | boolean;
 
 export class SessionManager {
 	private readonly sessions = new Map<
@@ -22,12 +26,19 @@ export class SessionManager {
 
 	public constructor(private readonly bot: AldenBot) {}
 
-	public waitFor<
-		T extends Event & {
-			message: { threadId: string; data: { uidFrom: string }; type: number };
-		},
-	>(
+	public waitFor<T extends SessionEvent>(
 		eventClass: EventConstructor<T>,
+		threadId: string,
+		userId: string,
+		timeoutMs: number,
+		validator?: SessionValidator<T>,
+		onCancel?: (reason: SessionError) => void,
+	): Promise<T> {
+		return this.waitForAny([eventClass], threadId, userId, timeoutMs, validator, onCancel);
+	}
+
+	public waitForAny<T extends SessionEvent>(
+		eventClasses: Array<EventConstructor<T>>,
 		threadId: string,
 		userId: string,
 		timeoutMs: number,
@@ -40,12 +51,15 @@ export class SessionManager {
 
 		return new Promise<T>((resolve, reject) => {
 			let isSettled = false;
+			const unregisterListeners: Array<() => void> = [];
 
 			const cleanup = () => {
 				if (isSettled) return;
 				isSettled = true;
 				clearTimeout(timeout);
-				unregister();
+				for (const unregister of unregisterListeners) {
+					unregister();
+				}
 				this.sessions.delete(key);
 			};
 
@@ -74,17 +88,20 @@ export class SessionManager {
 
 				if (isValid) {
 					this.bot.logger.debug(
-						`Event ${eventClass.name} from ${event.message.data.uidFrom} routed to active session.`,
+						`Event ${event.constructor.name} from ${event.message.data.uidFrom} routed to active session.`,
 					);
 					cleanup();
 					resolve(event);
 				}
 			};
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const unregister = this.bot.eventManager.on(eventClass, handler as any, {
-				priority: 10,
-			});
+			for (const eventClass of eventClasses) {
+				unregisterListeners.push(
+					this.bot.eventManager.on(eventClass, handler, {
+						priority: 10,
+					}),
+				);
+			}
 
 			this.sessions.set(key, {
 				reject: (err: Error) => {

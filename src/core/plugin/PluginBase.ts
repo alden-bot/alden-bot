@@ -15,6 +15,15 @@ import type {
 import type { PluginManifest } from './PluginManifest';
 
 const DEFAULT_PLUGIN_EVENT_PRIORITY = 30;
+const PLUGIN_BASE_BRAND = Symbol.for('alden-bot.PluginBase');
+
+interface PluginBaseCandidate {
+	[PLUGIN_BASE_BRAND]?: boolean;
+	dispose?: unknown;
+	onLoad?: unknown;
+	onEnable?: unknown;
+	onDisable?: unknown;
+}
 
 export abstract class PluginBase {
 	private readonly _logger: Logger;
@@ -45,6 +54,10 @@ export abstract class PluginBase {
 		if (!bot) {
 			throw new Error('Plugin requires an AldenBot instance');
 		}
+		Object.defineProperty(this, PLUGIN_BASE_BRAND, {
+			value: true,
+			enumerable: false,
+		});
 		this._logger = bot.logger.child(description.name);
 	}
 
@@ -140,4 +153,17 @@ export abstract class PluginBase {
 	public onEnable(): void | Promise<void> {}
 
 	public onDisable(): void | Promise<void> {}
+}
+
+export function isPluginBaseInstance(value: unknown): value is PluginBase {
+	if (typeof value !== 'object' || value === null) return false;
+
+	const candidate = value as PluginBaseCandidate;
+	return (
+		candidate[PLUGIN_BASE_BRAND] === true &&
+		typeof candidate.dispose === 'function' &&
+		typeof candidate.onLoad === 'function' &&
+		typeof candidate.onEnable === 'function' &&
+		typeof candidate.onDisable === 'function'
+	);
 }
