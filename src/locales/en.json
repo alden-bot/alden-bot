@@ -81,7 +81,7 @@
 			"up_to_date": "✅ Alden Bot is up to date (v{current}).",
 			"ahead": "ℹ️ This bot is ahead of the latest release.\n- Current: v{current}\n- Latest release: v{latest}",
 			"unavailable": "⚠️ Could not check for updates: {reason}",
-			"apply_requires_launcher": "⚠️ Automatic update requires the launcher. Start the bot with npm start or pnpm start, then run /update apply again.",
+			"apply_requires_launcher": "⚠️ Automatic update requires the launcher. Start the bot with pnpm start or an equivalent package manager command, then run /update apply again.",
 			"apply_unsupported_docker": "⚠️ Automatic in-container update is not supported. Update Docker by rebuilding or pulling the image, then run docker compose up -d.",
 			"apply_missing_assets": "⚠️ Release v{version} cannot be applied automatically because it is missing the ZIP asset or SHA256 checksum.",
 			"apply_started": "🔄 Update to v{version} is starting. The bot will stop, update through the launcher, then start again."

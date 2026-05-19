@@ -81,7 +81,7 @@
 			"up_to_date": "✅ Alden Bot đang ở bản mới nhất (v{current}).",
 			"ahead": "ℹ️ Bot này đang mới hơn release mới nhất.\n- Hiện tại: v{current}\n- Release mới nhất: v{latest}",
 			"unavailable": "⚠️ Không thể kiểm tra cập nhật: {reason}",
-			"apply_requires_launcher": "⚠️ Tự động cập nhật cần launcher. Hãy chạy bot bằng npm start hoặc pnpm start, rồi dùng lại /update apply.",
+			"apply_requires_launcher": "⚠️ Tự động cập nhật cần launcher. Hãy chạy bot bằng pnpm start hoặc command tương đương của package manager khác, rồi dùng lại /update apply.",
 			"apply_unsupported_docker": "⚠️ Không hỗ trợ tự cập nhật code bên trong container. Hãy cập nhật Docker bằng cách rebuild hoặc pull image, rồi chạy docker compose up -d.",
 			"apply_missing_assets": "⚠️ Release v{version} không thể tự cài vì thiếu file ZIP hoặc checksum SHA256.",
 			"apply_started": "🔄 Bắt đầu cập nhật lên v{version}. Bot sẽ dừng, launcher cập nhật, rồi tự chạy lại."

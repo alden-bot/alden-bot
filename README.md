@@ -3,7 +3,7 @@
 [![CI](https://github.com/finntrannn/alden-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/finntrannn/alden-bot/actions/workflows/ci.yml)
 [![License: ISC](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22-339933.svg)](https://nodejs.org/)
-[![npm](https://img.shields.io/badge/package%20manager-npm-CB3837.svg)](https://www.npmjs.com/)
+[![pnpm](https://img.shields.io/badge/package%20manager-pnpm-F69220.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6.svg)](https://www.typescriptlang.org/)
 
 Alden Bot is a Zalo bot built on top of the zca-js library. It transforms your personal Zalo account into a plugin-driven bot, featuring built-in support for commands, permissions, internationalization (i18n), and is incredibly easy to deploy.
@@ -24,7 +24,7 @@ Vietnamese README: [README.vi.md](README.vi.md)
 ## Requirements
 
 - Node.js 22 or newer.
-- npm (or pnpm, Yarn, or another compatible package manager).
+- Any compatible Node.js package manager. The documented commands use pnpm; npm, Yarn, or another compatible manager can run equivalent scripts.
 - A Zalo account for the bot runtime.
 
 ## Quick Start
@@ -32,9 +32,9 @@ Vietnamese README: [README.vi.md](README.vi.md)
 ```bash
 git clone https://github.com/finntrannn/alden-bot.git
 cd alden-bot
-npm install
+pnpm install
 cp .env.example .env
-npm start
+pnpm start
 ```
 
 On first launch, follow the login or QR flow printed in the terminal. Runtime data is stored in `data/`, and plugins are loaded from `plugins/`.
@@ -136,7 +136,7 @@ Docker Compose mounts `./data` for runtime data and `./plugins` for plugin files
 ## PM2
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env
 pm2 start ecosystem.config.cjs
 pm2 logs alden-bot
@@ -148,13 +148,13 @@ Use `/restart` only when the bot is managed by the launcher, PM2, or Docker.
 ## Development
 
 ```bash
-npm run dev
-npm run test
-npm run verify
-npm run create-plugin -- <PluginName>
+pnpm run dev
+pnpm run test
+pnpm run verify
+pnpm run create-plugin -- <PluginName>
 ```
 
-`npm run verify` is the main local gate: lint, format check, locale parity, tests, typecheck, and runtime smoke check. If you prefer pnpm or Yarn, use the equivalent `pnpm run ...` or `yarn ...` commands.
+`pnpm run verify` is the main local gate: lint, format check, locale parity, tests, typecheck, and runtime smoke check. If you prefer npm or Yarn, use the equivalent `npm run ...` or `yarn ...` commands.
 
 ## Support
 

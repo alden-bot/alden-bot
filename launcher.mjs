@@ -1,3 +1,4 @@
+// @ts-check
 /* global Buffer, console, fetch, process */
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -5,6 +6,45 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+
+/**
+ * @typedef {{
+ *   version: string;
+ *   assetName: string;
+ *   assetUrl: string;
+ *   checksumUrl: string;
+ * }} UpdateRelease
+ *
+ * @typedef {{
+ *   code?: number;
+ *   type?: string;
+ *   release?: UpdateRelease;
+ * }} LauncherRequest
+ *
+ * @typedef {LauncherRequest & {
+ *   type: 'update';
+ *   release: UpdateRelease;
+ * }} UpdateLauncherRequest
+ *
+ * @typedef {{
+ *   type: 'alden-control';
+ *   code?: number;
+ *   request: LauncherRequest;
+ * }} LauncherMessage
+ *
+ * @typedef {{
+ *   code?: number;
+ *   request?: LauncherRequest | null;
+ * }} RestartSignalSource
+ *
+ * @typedef {{
+ *   exitCode: number | null;
+ *   signal: NodeJS.Signals | null;
+ *   launcherMessage?: LauncherMessage;
+ * }} BotRunResult
+ *
+ * @typedef {readonly [command: string, args: string[]]} CommandAttempt
+ */
 
 export const AWAKE_CODE = 29253;
 export const AWAKE_EXIT_CODE = AWAKE_CODE % 256;
@@ -21,9 +61,16 @@ const PATHS = {
 const PRESERVED_ROOT_ENTRIES = new Set(['.env', '.git', 'data', 'plugins', 'node_modules']);
 const WINDOWS_COMMAND_SHIMS = new Set(['corepack', 'npm', 'pnpm', 'yarn']);
 
+/** @type {import('node:child_process').ChildProcess | undefined} */
 let activeChild;
 let isStopping = false;
 
+/**
+ * @param {number | null | undefined} exitCode
+ * @param {RestartSignalSource | null | undefined} launcherMessage
+ * @param {LauncherRequest | null | undefined} request
+ * @returns {boolean}
+ */
 export function shouldRestartChild(exitCode, launcherMessage, request) {
 	return (
 		exitCode === AWAKE_EXIT_CODE ||
@@ -33,6 +80,11 @@ export function shouldRestartChild(exitCode, launcherMessage, request) {
 	);
 }
 
+/**
+ * @param {string} text
+ * @param {string} assetName
+ * @returns {string | null}
+ */
 export function parseChecksumText(text, assetName) {
 	const lines = text
 		.split(/\r?\n/)
@@ -43,13 +95,18 @@ export function parseChecksumText(text, assetName) {
 	return match?.[0].toLowerCase() ?? null;
 }
 
+/**
+ * @param {string} stagingDir
+ * @returns {Promise<string>}
+ */
 export async function findReleaseRoot(stagingDir) {
 	if (await exists(path.join(stagingDir, 'package.json'))) return stagingDir;
 
 	const entries = await fsp.readdir(stagingDir, { withFileTypes: true });
 	const dirs = entries.filter((entry) => entry.isDirectory());
-	if (dirs.length === 1) {
-		const releaseRoot = path.join(stagingDir, dirs[0].name);
+	const [onlyDir] = dirs;
+	if (dirs.length === 1 && onlyDir) {
+		const releaseRoot = path.join(stagingDir, onlyDir.name);
 		if (await exists(path.join(releaseRoot, 'package.json'))) return releaseRoot;
 	}
 
@@ -58,6 +115,7 @@ export async function findReleaseRoot(stagingDir) {
 	);
 }
 
+/** @returns {Promise<void>} */
 async function main() {
 	await fsp.mkdir(PATHS.dataDir, { recursive: true });
 	await fsp.mkdir(PATHS.downloads, { recursive: true });
@@ -70,7 +128,7 @@ async function main() {
 		const fileRequest = await readAndClearLauncherRequest();
 		const request = result.launcherMessage?.request ?? fileRequest;
 
-		if (request?.type === 'update' && request.release) {
+		if (isUpdateRequest(request)) {
 			await applyUpdate(request);
 			continue;
 		}
@@ -89,11 +147,14 @@ async function main() {
 	}
 }
 
+/** @returns {Promise<BotRunResult>} */
 async function runBot() {
 	const tsxCli = require.resolve('tsx/cli');
+	/** @type {LauncherMessage | undefined} */
 	let launcherMessage;
 
-	return await new Promise((resolve) => {
+	/** @type {Promise<BotRunResult>} */
+	const result = new Promise((resolve) => {
 		activeChild = spawn(process.execPath, [tsxCli, 'src/index.ts'], {
 			cwd: PROJECT_ROOT,
 			env: {
@@ -112,9 +173,16 @@ async function runBot() {
 			resolve({ exitCode, signal, launcherMessage });
 		});
 	});
+
+	return await result;
 }
 
+/** @returns {void} */
 function registerSignalHandlers() {
+	/**
+	 * @param {NodeJS.Signals} signal
+	 * @returns {void}
+	 */
 	const stop = (signal) => {
 		if (isStopping) return;
 		isStopping = true;
@@ -129,27 +197,45 @@ function registerSignalHandlers() {
 	process.on('SIGTERM', () => stop('SIGTERM'));
 }
 
+/**
+ * @param {unknown} message
+ * @returns {message is LauncherMessage}
+ */
 function isLauncherMessage(message) {
+	if (typeof message !== 'object' || message === null) return false;
+	const candidate = /** @type {{ type?: unknown; request?: unknown }} */ (message);
+
 	return (
-		typeof message === 'object' &&
-		message !== null &&
-		message.type === 'alden-control' &&
-		typeof message.request === 'object' &&
-		message.request !== null
+		candidate.type === 'alden-control' &&
+		typeof candidate.request === 'object' &&
+		candidate.request !== null
 	);
 }
 
+/** @returns {Promise<LauncherRequest | null>} */
 async function readAndClearLauncherRequest() {
 	try {
 		const raw = await fsp.readFile(PATHS.request, 'utf-8');
 		await fsp.rm(PATHS.request, { force: true });
-		return JSON.parse(raw);
+		return /** @type {LauncherRequest} */ (JSON.parse(raw));
 	} catch (error) {
-		if (error?.code === 'ENOENT') return null;
+		if (getErrorCode(error) === 'ENOENT') return null;
 		throw error;
 	}
 }
 
+/**
+ * @param {LauncherRequest | null | undefined} request
+ * @returns {request is UpdateLauncherRequest}
+ */
+function isUpdateRequest(request) {
+	return request?.type === 'update' && request.release !== undefined;
+}
+
+/**
+ * @param {UpdateLauncherRequest} request
+ * @returns {Promise<void>}
+ */
 async function applyUpdate(request) {
 	const release = request.release;
 	const updateId = `${Date.now()}-${release.version}`;
@@ -196,6 +282,11 @@ async function applyUpdate(request) {
 	}
 }
 
+/**
+ * @param {string} url
+ * @param {string} filePath
+ * @returns {Promise<void>}
+ */
 async function downloadFile(url, filePath) {
 	const response = await fetch(url, {
 		headers: {
@@ -211,6 +302,11 @@ async function downloadFile(url, filePath) {
 	await fsp.writeFile(filePath, buffer);
 }
 
+/**
+ * @param {string} url
+ * @param {string} assetName
+ * @returns {Promise<string>}
+ */
 async function fetchChecksum(url, assetName) {
 	const response = await fetch(url, {
 		headers: {
@@ -230,13 +326,23 @@ async function fetchChecksum(url, assetName) {
 	return checksum;
 }
 
+/**
+ * @param {string} filePath
+ * @returns {Promise<string>}
+ */
 async function sha256File(filePath) {
 	const hash = createHash('sha256');
 	hash.update(await fsp.readFile(filePath));
 	return hash.digest('hex');
 }
 
+/**
+ * @param {string} zipPath
+ * @param {string} destination
+ * @returns {Promise<void>}
+ */
 async function extractZip(zipPath, destination) {
+	/** @type {CommandAttempt[]} */
 	const attempts =
 		process.platform === 'win32'
 			? [
@@ -257,6 +363,7 @@ async function extractZip(zipPath, destination) {
 					['tar', ['-xf', zipPath, '-C', destination]],
 				];
 
+	/** @type {unknown} */
 	let lastError;
 	for (const [command, args] of attempts) {
 		try {
@@ -270,28 +377,49 @@ async function extractZip(zipPath, destination) {
 	throw lastError ?? new Error('No ZIP extractor is available.');
 }
 
+/**
+ * @param {string} backupDir
+ * @returns {Promise<void>}
+ */
 async function backupCurrentCode(backupDir) {
 	await fsp.rm(backupDir, { recursive: true, force: true });
 	await fsp.mkdir(backupDir, { recursive: true });
 	await copyReplaceableEntries(PROJECT_ROOT, backupDir);
 }
 
+/**
+ * @param {string} releaseRoot
+ * @returns {Promise<void>}
+ */
 async function replaceCodeFromRelease(releaseRoot) {
 	await removeReplaceableEntries(PROJECT_ROOT);
 	await copyReplaceableEntries(releaseRoot, PROJECT_ROOT);
 }
 
+/**
+ * @param {string} backupDir
+ * @returns {Promise<void>}
+ */
 async function rollbackCode(backupDir) {
 	await removeReplaceableEntries(PROJECT_ROOT);
 	await copyReplaceableEntries(backupDir, PROJECT_ROOT);
 }
 
+/**
+ * @param {string} root
+ * @returns {Promise<void>}
+ */
 async function removeReplaceableEntries(root) {
 	for (const entry of await getReplaceableEntryNames(root)) {
 		await fsp.rm(path.join(root, entry), { recursive: true, force: true });
 	}
 }
 
+/**
+ * @param {string} sourceRoot
+ * @param {string} targetRoot
+ * @returns {Promise<void>}
+ */
 async function copyReplaceableEntries(sourceRoot, targetRoot) {
 	for (const entry of await getReplaceableEntryNames(sourceRoot)) {
 		await fsp.cp(path.join(sourceRoot, entry), path.join(targetRoot, entry), {
@@ -302,16 +430,22 @@ async function copyReplaceableEntries(sourceRoot, targetRoot) {
 	}
 }
 
+/**
+ * @param {string} root
+ * @returns {Promise<string[]>}
+ */
 async function getReplaceableEntryNames(root) {
 	const entries = await fsp.readdir(root, { withFileTypes: true });
 	return entries.map((entry) => entry.name).filter((name) => !PRESERVED_ROOT_ENTRIES.has(name));
 }
 
+/** @returns {Promise<void>} */
 async function installProductionDependencies() {
-	const packageJson = JSON.parse(
-		await fsp.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf-8'),
+	const packageJson = /** @type {{ packageManager?: unknown }} */ (
+		JSON.parse(await fsp.readFile(path.join(PROJECT_ROOT, 'package.json'), 'utf-8'))
 	);
-	const packageManager = String(packageJson.packageManager ?? '');
+	const packageManager =
+		typeof packageJson.packageManager === 'string' ? packageJson.packageManager : '';
 
 	if (
 		packageManager.startsWith('pnpm@') ||
@@ -343,7 +477,12 @@ async function installProductionDependencies() {
 	await runCommand('npm', ['install', '--omit=dev']);
 }
 
+/**
+ * @param {CommandAttempt[]} commands
+ * @returns {Promise<void>}
+ */
 async function runFirstAvailable(commands) {
+	/** @type {unknown} */
 	let lastError;
 	for (const [command, args] of commands) {
 		try {
@@ -357,8 +496,14 @@ async function runFirstAvailable(commands) {
 	throw lastError ?? new Error('No package manager command is available.');
 }
 
+/**
+ * @param {string} command
+ * @param {string[]} args
+ * @returns {Promise<void>}
+ */
 async function runCommand(command, args) {
-	await new Promise((resolve, reject) => {
+	/** @type {Promise<void>} */
+	const finished = new Promise((resolve, reject) => {
 		const useWindowsShim = process.platform === 'win32' && WINDOWS_COMMAND_SHIMS.has(command);
 		const executable = useWindowsShim ? (process.env.ComSpec ?? 'cmd.exe') : command;
 		const executableArgs = useWindowsShim ? ['/d', '/s', '/c', command, ...args] : args;
@@ -377,8 +522,14 @@ async function runCommand(command, args) {
 			reject(new Error(`${command} ${args.join(' ')} exited with code ${code}`));
 		});
 	});
+
+	await finished;
 }
 
+/**
+ * @param {string} filePath
+ * @returns {Promise<boolean>}
+ */
 async function exists(filePath) {
 	try {
 		await fsp.stat(filePath);
@@ -386,6 +537,16 @@ async function exists(filePath) {
 	} catch {
 		return false;
 	}
+}
+
+/**
+ * @param {unknown} error
+ * @returns {string | undefined}
+ */
+function getErrorCode(error) {
+	if (typeof error !== 'object' || error === null) return undefined;
+	const candidate = /** @type {{ code?: unknown }} */ (error);
+	return typeof candidate.code === 'string' ? candidate.code : undefined;
 }
 
 const currentFile = fileURLToPath(import.meta.url);

@@ -3,7 +3,7 @@
 [![CI](https://github.com/finntrannn/alden-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/finntrannn/alden-bot/actions/workflows/ci.yml)
 [![License: ISC](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22-339933.svg)](https://nodejs.org/)
-[![npm](https://img.shields.io/badge/package%20manager-npm-CB3837.svg)](https://www.npmjs.com/)
+[![pnpm](https://img.shields.io/badge/package%20manager-pnpm-F69220.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6.svg)](https://www.typescriptlang.org/)
 
 Alden Bot là một Zalo bot dựa trên thư viện zca-js. Nó giúp chuyển đổi tài khoản Zalo cá nhân thành một bot hoạt động theo cơ chế plugin, hỗ trợ sẵn commands, phân quyền (permissions), đa ngôn ngữ (i18n) và rất dễ triển khai (deploy)
@@ -24,7 +24,7 @@ English README: [README.md](README.md)
 ## Requirements
 
 - Node.js 22 trở lên.
-- npm (hoặc pnpm, Yarn, hay package manager tương thích khác).
+- Bất kỳ Node.js package manager tương thích nào. README dùng pnpm cho command mẫu; npm, Yarn hoặc package manager tương thích khác có thể chạy command tương đương.
 - Một tài khoản Zalo dùng để chạy bot runtime.
 
 ## Quick Start
@@ -32,9 +32,9 @@ English README: [README.md](README.md)
 ```bash
 git clone https://github.com/finntrannn/alden-bot.git
 cd alden-bot
-npm install
+pnpm install
 cp .env.example .env
-npm start
+pnpm start
 ```
 
 Lần chạy đầu, làm theo login hoặc QR flow hiển thị trong terminal. Runtime data nằm trong `data/`, còn plugin được load từ `plugins/`.
@@ -136,7 +136,7 @@ Docker Compose mount `./data` cho runtime data và `./plugins` cho plugin files.
 ## PM2
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env
 pm2 start ecosystem.config.cjs
 pm2 logs alden-bot
@@ -148,13 +148,13 @@ Chỉ nên dùng `/restart` khi bot đang được quản lý bằng launcher, P
 ## Development
 
 ```bash
-npm run dev
-npm run test
-npm run verify
-npm run create-plugin -- <PluginName>
+pnpm run dev
+pnpm run test
+pnpm run verify
+pnpm run create-plugin -- <PluginName>
 ```
 
-`npm run verify` là gate local chính: lint, format check, locale parity, tests, typecheck và runtime smoke check. Nếu thích pnpm hoặc Yarn, dùng command tương đương như `pnpm run ...` hoặc `yarn ...`.
+`pnpm run verify` là gate local chính: lint, format check, locale parity, tests, typecheck và runtime smoke check. Nếu dùng npm hoặc Yarn, hãy chạy command tương đương như `npm run ...` hoặc `yarn ...`.
 
 ## Support
 

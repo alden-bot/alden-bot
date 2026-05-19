@@ -2,7 +2,7 @@ module.exports = {
 	apps: [
 		{
 			name: 'alden-bot',
-			script: 'npm',
+			script: 'pnpm',
 			args: 'start',
 			interpreter: 'none',
 			autorestart: true,
