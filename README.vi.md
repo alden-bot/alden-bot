@@ -1,4 +1,4 @@
-# Alden Bot
+# alden-bot
 
 [![CI](https://github.com/finntrannn/alden-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/finntrannn/alden-bot/actions/workflows/ci.yml)
 [![License: ISC](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
@@ -6,9 +6,9 @@
 [![pnpm](https://img.shields.io/badge/package%20manager-pnpm-F69220.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6.svg)](https://www.typescriptlang.org/)
 
-Alden Bot là một Zalo bot dựa trên thư viện zca-js. Nó giúp chuyển đổi tài khoản Zalo cá nhân thành một bot hoạt động theo cơ chế plugin, hỗ trợ sẵn commands, phân quyền (permissions), đa ngôn ngữ (i18n) và rất dễ triển khai (deploy)
+alden-bot là một Zalo bot dựa trên thư viện zca-js. Nó giúp chuyển đổi tài khoản Zalo cá nhân thành một bot hoạt động theo cơ chế plugin, hỗ trợ sẵn commands, phân quyền (permissions), đa ngôn ngữ (i18n) và rất dễ triển khai (deploy)
 
-> Alden Bot dùng thư viện Zalo API không chính thức và không liên quan tới Zalo. Việc dùng tài khoản cá nhân để chạy bot có thể vi phạm quy định nền tảng hoặc khiến tài khoản bị hạn chế. Nên dùng tài khoản riêng cho bot và tự cân nhắc rủi ro trước khi chạy.
+> alden-bot dùng thư viện Zalo API không chính thức và không liên quan tới Zalo. Việc dùng tài khoản cá nhân để chạy bot có thể vi phạm quy định nền tảng hoặc khiến tài khoản bị hạn chế. Nên dùng tài khoản riêng cho bot và tự cân nhắc rủi ro trước khi chạy.
 
 English README: [README.md](README.md)
 
@@ -119,7 +119,7 @@ Plugin i18n là manual. Runtime chỉ dùng translation riêng của plugin khi 
 
 Plugin là code toàn quyền. Plugin có thể truy cập filesystem, network, environment variables và process API giống bot chính. Chỉ install plugin từ nguồn bạn tin.
 
-Nếu plugin có `package.json`, Alden Bot có thể install dependency lúc runtime. Lockfile sẽ được ưu tiên nếu có; nếu không, runtime fallback sang production install.
+Nếu plugin có `package.json`, alden-bot có thể install dependency lúc runtime. Lockfile sẽ được ưu tiên nếu có; nếu không, runtime fallback sang production install.
 
 Plugin examples và plugin docs dài hơn sẽ sống riêng khỏi runtime repository này.
 

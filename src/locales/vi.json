@@ -74,11 +74,11 @@
 			"restarting": "🔄 Bot đang khởi động lại..."
 		},
 		"update": {
-			"description": "Kiểm tra hoặc cài bản cập nhật Alden Bot",
+			"description": "Kiểm tra hoặc cài bản cập nhật alden-bot",
 			"usage": "[check|apply]",
 			"invalid_usage": "Cách dùng: /update [check|apply]",
-			"available": "🔔 Có bản cập nhật Alden Bot!\n- Hiện tại: v{current}\n- Mới nhất: v{latest}\n- Ngày phát hành: {date}\n- Release: {url}\n\nDùng /update apply để tự động cài khi bot đang chạy qua launcher.",
-			"up_to_date": "✅ Alden Bot đang ở bản mới nhất (v{current}).",
+			"available": "🔔 Có bản cập nhật alden-bot!\n- Hiện tại: v{current}\n- Mới nhất: v{latest}\n- Ngày phát hành: {date}\n- Release: {url}\n\nDùng /update apply để tự động cài khi bot đang chạy qua launcher.",
+			"up_to_date": "✅ alden-bot đang ở bản mới nhất (v{current}).",
 			"ahead": "ℹ️ Bot này đang mới hơn release mới nhất.\n- Hiện tại: v{current}\n- Release mới nhất: v{latest}",
 			"unavailable": "⚠️ Không thể kiểm tra cập nhật: {reason}",
 			"apply_requires_launcher": "⚠️ Tự động cập nhật cần launcher. Hãy chạy bot bằng pnpm start hoặc command tương đương của package manager khác, rồi dùng lại /update apply.",
@@ -88,7 +88,7 @@
 		},
 		"status": {
 			"description": "Hiển thị trạng thái hệ thống Bot",
-			"info": "📊 **Alden Bot Status**\n- Phiên bản: v{version}\n- Uptime Bot: {uptime}\n- Uptime OS: {osUptime}\n\n💻 **Bộ nhớ (RAM)**\n- RSS: {rss} MB\n- Heap Total: {heapTotal} MB\n- Heap Used: {heapUsed} MB\n- OS Free: {freeMem} MB / {totalMem} MB\n\n⚙️ **Hệ thống**\n- OS: {osType} {osRelease} ({osArch})\n- Node.js: {nodeVersion}\n- CPU: {cpu}"
+			"info": "📊 **alden-bot status**\n- Phiên bản: v{version}\n- Uptime Bot: {uptime}\n- Uptime OS: {osUptime}\n\n💻 **Bộ nhớ (RAM)**\n- RSS: {rss} MB\n- Heap Total: {heapTotal} MB\n- Heap Used: {heapUsed} MB\n- OS Free: {freeMem} MB / {totalMem} MB\n\n⚙️ **Hệ thống**\n- OS: {osType} {osRelease} ({osArch})\n- Node.js: {nodeVersion}\n- CPU: {cpu}"
 		},
 		"language": {
 			"description": "Đổi ngôn ngữ hiển thị",

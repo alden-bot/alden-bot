@@ -6,7 +6,7 @@ const validManifest = {
 	name: 'example-plugin',
 	version: '1.0.0',
 	description: 'Example plugin',
-	author: 'Alden',
+	author: 'alden',
 	main: 'index.js',
 };
 

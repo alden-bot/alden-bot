@@ -43,7 +43,7 @@ const pluginJson = JSON.stringify(
 	{
 		name: pluginName,
 		version: '1.0.0',
-		description: `${pluginName} plugin for Alden Bot`,
+		description: `${pluginName} plugin for alden-bot`,
 		author: 'your-name',
 		main: 'src/main.ts',
 		apiVersion: '1.0.0',

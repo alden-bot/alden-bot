@@ -69,7 +69,7 @@ async function createPluginDir(
 				name: options.manifestName ?? name,
 				version: '1.0.0',
 				description: 'Plugin under test',
-				author: 'Alden',
+				author: 'alden',
 				main: 'main.ts',
 				permissions: {
 					'alden.test': 3,

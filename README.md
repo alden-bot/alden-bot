@@ -1,4 +1,4 @@
-# Alden Bot
+# alden-bot
 
 [![CI](https://github.com/finntrannn/alden-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/finntrannn/alden-bot/actions/workflows/ci.yml)
 [![License: ISC](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
@@ -6,9 +6,9 @@
 [![pnpm](https://img.shields.io/badge/package%20manager-pnpm-F69220.svg)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6.svg)](https://www.typescriptlang.org/)
 
-Alden Bot is a Zalo bot built on top of the zca-js library. It transforms your personal Zalo account into a plugin-driven bot, featuring built-in support for commands, permissions, internationalization (i18n), and is incredibly easy to deploy.
+alden-bot is a Zalo bot built on top of the zca-js library. It transforms your personal Zalo account into a plugin-driven bot, featuring built-in support for commands, permissions, internationalization (i18n), and is incredibly easy to deploy.
 
-> Alden Bot uses an unofficial Zalo API library and is not affiliated with Zalo. Running a personal account as a bot can violate platform rules or trigger account restrictions. Use a dedicated account and understand the risk before running it.
+> alden-bot uses an unofficial Zalo API library and is not affiliated with Zalo. Running a personal account as a bot can violate platform rules or trigger account restrictions. Use a dedicated account and understand the risk before running it.
 
 Vietnamese README: [README.vi.md](README.vi.md)
 
@@ -119,7 +119,7 @@ Plugin i18n is manual. The runtime only uses plugin translations when plugin cod
 
 Plugins are trusted full-power code. A plugin can access the same filesystem, network, environment variables, and process APIs as the bot. Install plugins only from sources you trust.
 
-If a plugin includes `package.json`, Alden Bot can install its dependencies at runtime. Lockfiles are used when available; otherwise the runtime falls back to a production install.
+If a plugin includes `package.json`, alden-bot can install its dependencies at runtime. Lockfiles are used when available; otherwise the runtime falls back to a production install.
 
 Plugin examples and longer plugin docs live separately from this runtime repository.
 

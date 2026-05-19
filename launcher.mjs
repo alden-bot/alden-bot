@@ -243,7 +243,7 @@ async function applyUpdate(request) {
 	const stagingDir = path.join(PATHS.downloads, `${updateId}-staging`);
 	const backupDir = path.join(PATHS.backups, updateId);
 
-	console.log(`[launcher] Updating Alden Bot to v${release.version}...`);
+	console.log(`[launcher] Updating alden-bot to v${release.version}...`);
 
 	try {
 		await fsp.rm(stagingDir, { recursive: true, force: true });

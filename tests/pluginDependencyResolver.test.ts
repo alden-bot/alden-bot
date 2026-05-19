@@ -22,7 +22,7 @@ function createMeta(name: string, depend: string[] = [], softDepend: string[] = 
 			name,
 			version: '1.0.0',
 			description: name,
-			author: 'Alden',
+			author: 'alden',
 			main: 'index.js',
 			depend,
 			softDepend,
