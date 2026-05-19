@@ -69,6 +69,7 @@ Nếu `ADMIN_IDS` trống, bot vẫn chạy, nhưng command chỉ dành cho BotA
 | `/language`   | Đổi ngôn ngữ hiển thị.                  | Member        |
 | `/permission` | Quản lý virtual permission trong group. | Leader        |
 | `/plugins`    | Xem plugin đang được load.              | BotAdmin      |
+| `/update`     | Kiểm tra hoặc cài cập nhật runtime.     | BotAdmin      |
 | `/restart`    | Restart bot process.                    | BotAdmin      |
 | `/reload`     | Reload plugin. Mặc định bị tắt.         | BotAdmin      |
 | `/eval`       | Chạy JavaScript. Mặc định bị tắt.       | BotAdmin      |
@@ -142,7 +143,7 @@ pm2 logs alden-bot
 pm2 save
 ```
 
-Chỉ nên dùng `/restart` khi bot đang được quản lý bằng PM2 hoặc Docker.
+Chỉ nên dùng `/restart` khi bot đang được quản lý bằng launcher, PM2 hoặc Docker.
 
 ## Development
 

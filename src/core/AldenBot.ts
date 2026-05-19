@@ -21,6 +21,7 @@ import { PluginsCommand } from '@/core/command/builtins/PluginsCommand';
 import { ReloadCommand } from '@/core/command/builtins/ReloadCommand';
 import { RestartCommand } from '@/core/command/builtins/RestartCommand';
 import { StatusCommand } from '@/core/command/builtins/StatusCommand';
+import { UpdateCommand } from '@/core/command/builtins/UpdateCommand';
 import { EventManager } from '@/core/event/EventManager';
 import { PermissionManager, Role } from '@/core/permission/PermissionManager';
 import { PluginManager } from '@/core/plugin/PluginManager';
@@ -138,6 +139,7 @@ export class AldenBot {
 	private registerCorePermissions(): void {
 		this.permissionManager.registerPermission('alden.command.plugins', Role.BotAdmin);
 		this.permissionManager.registerPermission('alden.command.restart', Role.BotAdmin);
+		this.permissionManager.registerPermission('alden.command.update', Role.BotAdmin);
 
 		if (ENABLE_RELOAD_COMMAND) {
 			this.permissionManager.registerPermission('alden.command.reload', Role.BotAdmin);
@@ -161,6 +163,7 @@ export class AldenBot {
 		this.commandManager.register(new PermissionCommand());
 		this.commandManager.register(new RestartCommand());
 		this.commandManager.register(new StatusCommand());
+		this.commandManager.register(new UpdateCommand());
 		this.commandManager.register(new CancelCommand());
 		this.commandManager.register(new LanguageCommand());
 

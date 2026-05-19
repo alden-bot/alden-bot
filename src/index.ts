@@ -3,10 +3,10 @@ import { AuthManager } from '@/core/auth/AuthManager';
 import { BotListener } from '@/core/BotListener';
 import { AldenBot } from '@/core/AldenBot';
 import { PATH } from '@/config/constants';
+import { scheduleStartupUpdateWarning } from '@/core/update/StartupUpdateWarning';
 import { ensureDirAsync, readJsonFileAsync } from '@/utils/file';
 import logger, { Logger } from '@/shared/logger';
 
-console.clear();
 validateEnv();
 
 Logger.enableFileOutput(PATH.LOGS_DIR);
@@ -14,17 +14,22 @@ Logger.enableFileOutput(PATH.LOGS_DIR);
 await ensureDirAsync(PATH.DATA_DIR);
 await ensureDirAsync(PATH.LOGIN_DIR);
 await ensureDirAsync(PATH.PLUGINS_DIR);
+await ensureDirAsync(PATH.UPDATE_BACKUPS_DIR);
+await ensureDirAsync(PATH.UPDATE_DOWNLOADS_DIR);
 
 function printBanner(version: string): void {
 	const width = process.stdout.columns || 80;
 	const labelWidth = Math.max(16, Math.floor(width / Math.PI));
 
 	console.log(`
-    _    _     _
-   / \\  | | __| | ___ _ __
-  / _ \\ | |/ _\` |/ _ \\ '_ \\
- / ___ \\| | (_| |  __/ | | |
-/_/   \\_\\_|\\__,_|\\___|_| |_|
+           ████      █████                    
+          ▒▒███     ▒▒███                     
+  ██████   ▒███   ███████   ██████  ████████  
+ ▒▒▒▒▒███  ▒███  ███▒▒███  ███▒▒███▒▒███▒▒███ 
+  ███████  ▒███ ▒███ ▒███ ▒███████  ▒███ ▒███ 
+ ███▒▒███  ▒███ ▒███ ▒███ ▒███▒▒▒   ▒███ ▒███ 
+▒▒████████ █████▒▒████████▒▒██████  ████ █████
+ ▒▒▒▒▒▒▒▒ ▒▒▒▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒  ▒▒▒▒ ▒▒▒▒▒ 
 
 ${'version'.padEnd(labelWidth, '.')}: ${version}
 ${'by'.padEnd(labelWidth, '.')}: finntrannn (github: finntrannn | finn.id.vn)
@@ -45,6 +50,7 @@ const startBot = async (): Promise<void> => {
 
 		const bot = new AldenBot(api);
 		await bot.initialize(version);
+		scheduleStartupUpdateWarning(bot);
 
 		await bot.pluginManager.loadAll(PATH.PLUGINS_DIR);
 		await bot.pluginManager.enableAll();
@@ -73,7 +79,7 @@ const startBot = async (): Promise<void> => {
 			console.log('\n\n');
 
 			await Logger.flush();
-			process.exit(0);
+			process.exit(process.exitCode ?? 0);
 		};
 
 		process.on('SIGINT', handleShutdown);

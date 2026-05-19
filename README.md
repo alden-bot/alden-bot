@@ -69,6 +69,7 @@ If `ADMIN_IDS` is empty, the bot can still run, but BotAdmin-only commands will 
 | `/language`   | Change display language.                 | Member        |
 | `/permission` | Manage virtual group permissions.        | Leader        |
 | `/plugins`    | List loaded plugins.                     | BotAdmin      |
+| `/update`     | Check or apply runtime updates.          | BotAdmin      |
 | `/restart`    | Restart the bot process.                 | BotAdmin      |
 | `/reload`     | Reload plugins. Disabled by default.     | BotAdmin      |
 | `/eval`       | Execute JavaScript. Disabled by default. | BotAdmin      |
@@ -142,7 +143,7 @@ pm2 logs alden-bot
 pm2 save
 ```
 
-Use `/restart` only when the bot is managed by PM2 or Docker.
+Use `/restart` only when the bot is managed by the launcher, PM2, or Docker.
 
 ## Development
 

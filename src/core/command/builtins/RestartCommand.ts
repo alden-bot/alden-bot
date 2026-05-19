@@ -1,4 +1,9 @@
 import { CommandBase, type CommandContext } from '@/core/command/Command';
+import {
+	AWAKE_EXIT_CODE,
+	isLauncherManaged,
+	requestLauncherRestart,
+} from '@/core/update/RestartProtocol';
 
 export class RestartCommand extends CommandBase {
 	public constructor() {
@@ -16,6 +21,16 @@ export class RestartCommand extends CommandBase {
 			message.threadId,
 			message.type,
 		);
+
+		if (isLauncherManaged()) {
+			await requestLauncherRestart('restart command');
+			this.logger.info('Restart command requested AWAKE restart through launcher.');
+			process.exitCode = AWAKE_EXIT_CODE;
+			setTimeout(() => {
+				process.emit('SIGTERM');
+			}, 1000);
+			return;
+		}
 
 		this.logger.info('Restart command emitted. Triggering graceful shutdown...');
 		setTimeout(() => {
