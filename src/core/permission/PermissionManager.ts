@@ -112,9 +112,6 @@ export class PermissionManager {
 
 		if (!isGroup) return Role.Member;
 
-		const vDeputies = this.virtualDeputies.get(threadId);
-		if (vDeputies?.has(userId)) return Role.Deputy;
-
 		let cached = this.groupCache.get(threadId);
 
 		if (!cached) {
@@ -132,6 +129,9 @@ export class PermissionManager {
 			if (cached.creatorId === userId) return Role.Leader;
 			if (cached.adminIds.includes(userId)) return Role.Deputy;
 		}
+
+		const vDeputies = this.virtualDeputies.get(threadId);
+		if (vDeputies?.has(userId)) return Role.Deputy;
 
 		return Role.Member;
 	}
