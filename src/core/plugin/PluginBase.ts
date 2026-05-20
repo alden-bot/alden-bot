@@ -58,7 +58,7 @@ export abstract class PluginBase {
 			value: true,
 			enumerable: false,
 		});
-		this._logger = bot.logger.child(description.name);
+		this._logger = bot.logger.child('plugin/' + description.name);
 	}
 
 	public get dataFolder(): string {

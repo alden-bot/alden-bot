@@ -30,7 +30,7 @@
 			"not_found": "❌ Command **/{command}** not found!",
 			"detail": "**Command details: /{command}**\n**Description:** {desc}\n**Aliases:** {aliases}\n**Cooldown:** {cooldown} seconds\n**Usage:** {usage}",
 			"list_title": "***📚 Command List:***\n",
-			"list_item": "<color value=\"green\">**{prefix}{name}**</color> - {desc}\n",
+			"list_item": "**{prefix}{name}** - {desc}\n",
 			"page_info": "Page {current}/{total}",
 			"page_prev": "`/help {page}` ← prev",
 			"page_next": "next → `/help {page}`",

@@ -30,7 +30,7 @@
 			"not_found": "❌ Không tìm thấy lệnh **/{command}**!",
 			"detail": "**Thông tin chi tiết về lệnh: /{command}**\n**Mô tả:** {desc}\n**Lệnh tắt:** {aliases}\n**Thời gian hồi:** {cooldown} giây\n**Cách dùng:** {usage}",
 			"list_title": "***📚 Danh sách lệnh:***\n",
-			"list_item": "<color value=\"green\">**{prefix}{name}**</color> - {desc}\n",
+			"list_item": "**{prefix}{name}** - {desc}\n",
 			"page_info": "Trang {current}/{total}",
 			"page_prev": "`/help {page}` ← trước",
 			"page_next": "sau → `/help {page}`",
